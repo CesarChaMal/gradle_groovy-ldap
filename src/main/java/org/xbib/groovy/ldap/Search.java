@@ -1,5 +1,6 @@
 package org.xbib.groovy.ldap;
 
+import javax.naming.directory.SearchControls;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Map;
@@ -8,6 +9,13 @@ import java.util.Map;
  * Contains all parameters for an LDAP search
  */
 public class Search {
+
+    public static final int DEFAULT_TIME_LIMIT = 5000;
+
+    public static final int DEFAULT_COUNT_LIMIT = 20000;
+
+    private final SearchControls searchControls;
+
     private final String base;
 
     private final SearchScope scope;
@@ -18,16 +26,27 @@ public class Search {
 
     private final String[] attrs;
 
+    private int timeLimit;
+
+    private int countLimit;
+
     public Search() {
-        this("", SearchScope.SUB, "(objectClass=*)");
+        this("", SearchScope.SUB, "(objectClass=*)", DEFAULT_TIME_LIMIT, DEFAULT_COUNT_LIMIT);
     }
 
     public Search(String base, SearchScope scope, String filter) {
+        this(base, scope, filter, DEFAULT_TIME_LIMIT, DEFAULT_COUNT_LIMIT);
+    }
+
+    public Search(String base, SearchScope scope, String filter, int timeLimit, int countLimit) {
         this.base = base;
         this.scope = scope;
         this.filter = filter;
         this.filterArgs = null;
         this.attrs = null;
+        this.timeLimit = timeLimit;
+        this.countLimit = countLimit;
+        this.searchControls = getSearchControls(scope, null, timeLimit, countLimit);
     }
 
     public Search(Map<String, Object> map) {
@@ -36,6 +55,9 @@ public class Search {
         this.filter = map.containsKey("filter") ? map.get("filter").toString() : "(objectClass=*)";
         this.filterArgs = map.containsKey("filterArgs") ? toArray(Object.class, map.get("filterArgs")) : null;
         this.attrs = map.containsKey("attrs") ? toArray(String.class, map.get("attrs")) : null;
+        this.timeLimit = map.containsKey("timeLimit") ? Integer.parseInt((String) map.get("timeLimit")) : DEFAULT_TIME_LIMIT;
+        this.countLimit = map.containsKey("countLimit") ? Integer.parseInt((String) map.get("countLimit")) : DEFAULT_COUNT_LIMIT;
+        this.searchControls = getSearchControls(scope, attrs, timeLimit, countLimit);
     }
 
     @SuppressWarnings("unchecked")
@@ -71,5 +93,22 @@ public class Search {
 
     public SearchScope getScope() {
         return scope;
+    }
+
+    public SearchControls getSearchControls() {
+        return searchControls;
+    }
+
+    private static SearchControls getSearchControls(SearchScope searchScope,
+                                                    String[] attrs,
+                                                    int timeLimit,
+                                                    int countLimit) {
+        SearchControls searchControls = new SearchControls();
+        searchControls.setSearchScope(searchScope.getJndiValue());
+        searchControls.setReturningAttributes(attrs);
+        searchControls.setReturningObjFlag(true);
+        searchControls.setTimeLimit(timeLimit);
+        searchControls.setCountLimit(countLimit);
+        return searchControls;
     }
 }

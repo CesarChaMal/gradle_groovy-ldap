@@ -17,7 +17,6 @@ import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
 
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -119,12 +118,12 @@ public class LDAP {
      */
     public boolean exists(final String dn) throws NamingException {
         WithContext<Boolean> action = ctx -> {
-            SearchControls sc = new SearchControls();
-            sc.setSearchScope(SearchControls.OBJECT_SCOPE);
-            sc.setReturningAttributes(new String[0]);
-            sc.setReturningObjFlag(false);
+            SearchControls searchControls = new SearchControls();
+            searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
+            searchControls.setReturningAttributes(new String[0]);
+            searchControls.setReturningObjFlag(false);
             try {
-                ctx.search(dn, "(objectClass=*)", sc);
+                ctx.search(dn, "(objectClass=*)", searchControls);
                 return true;
             } catch (NameNotFoundException e) {
                 logger.log(Level.FINEST, e.getMessage(), e);
@@ -147,14 +146,14 @@ public class LDAP {
             throw new IllegalArgumentException("Assertion may only include one attribute");
         }
         WithContext<Boolean> action = ctx -> {
-            SearchControls sc = new SearchControls();
-            sc.setReturningAttributes(new String[0]);
-            sc.setSearchScope(SearchControls.OBJECT_SCOPE);
-            sc.setReturningObjFlag(false);
+            SearchControls searchControls = new SearchControls();
+            searchControls.setReturningAttributes(new String[0]);
+            searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
+            searchControls.setReturningObjFlag(false);
             String attrName = assertion.keySet().iterator().next();
             String filter = "(" + attrName + "={0})";
             Object value = assertion.get(attrName);
-            NamingEnumeration<SearchResult> enumeration = ctx.search(dn, filter, new Object[]{value}, sc);
+            NamingEnumeration<SearchResult> enumeration = ctx.search(dn, filter, new Object[]{value}, searchControls);
             return enumeration.hasMore();
         };
         return performWithContext(action);
@@ -288,13 +287,8 @@ public class LDAP {
     public List<Map<String,Object>> search(Search search) throws NamingException {
         List<Map<String,Object>> result = new ArrayList<>();
         WithContext<Object> action = ctx -> {
-            SearchControls sc = new SearchControls();
-            sc.setSearchScope(search.getScope().getJndiValue());
-            sc.setReturningAttributes(search.getAttrs());
-            sc.setReturningObjFlag(true);
-            sc.setTimeLimit(5000);
             NamingEnumeration<SearchResult> results =
-                    ctx.search(search.getBase(), search.getFilter(), search.getFilterArgs(), sc);
+                    ctx.search(search.getBase(), search.getFilter(), search.getFilterArgs(), search.getSearchControls());
             while (results != null && results.hasMore()) {
                 SearchResult sr = results.next();
                 String dn = sr.getNameInNamespace();
