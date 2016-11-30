@@ -1,0 +1,54 @@
+
+printf "Host: %s\nOS: %s %s %s\nJVM: %s %s %s %s\nGroovy: %s\nGradle: %s\n" +
+        "Build: group: ${project.group} name: ${project.name} version: ${project.version}\n",
+        InetAddress.getLocalHost(),
+        System.getProperty("os.name"),
+        System.getProperty("os.arch"),
+        System.getProperty("os.version"),
+        System.getProperty("java.version"),
+        System.getProperty("java.vm.version"),
+        System.getProperty("java.vm.vendor"),
+        System.getProperty("java.vm.name"),
+        GroovySystem.getVersion(),
+        gradle.gradleVersion
+
+apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    wagon
+}
+
+dependencies {
+    compileOnly 'org.codehaus.groovy:groovy-all:2.4.7'
+    testCompile 'org.codehaus.groovy:groovy-all:2.4.7'
+    testCompile 'junit:junit:4.12'
+    wagon 'org.apache.maven.wagon:wagon-ssh-external:2.10'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier 'javadoc'
+}
+artifacts {
+    archives sourcesJar, javadocJar
+}
+if (project.hasProperty('signing.keyId')) {
+    signing {
+        sign configurations.archives
+    }
+}
+
+apply from: 'gradle/ext.gradle'
+apply from: 'gradle/publish.gradle'

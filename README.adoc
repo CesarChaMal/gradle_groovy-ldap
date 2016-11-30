@@ -1,0 +1,2 @@
+This is a Java 8 / Gradle version of https://svn.apache.org/repos/asf/directory/sandbox/szoerner/groovyldap/
+with some modifications.
