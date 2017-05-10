@@ -11,13 +11,13 @@ public enum SearchScope {
     ONE(SearchControls.ONELEVEL_SCOPE),
     SUB(SearchControls.SUBTREE_SCOPE);
 
-    private int jndiValue;
+    private int value;
 
-    SearchScope(int jndiValue) {
-        this.jndiValue = jndiValue;
+    SearchScope(int value) {
+        this.value = value;
     }
 
-    public int getJndiValue() {
-        return jndiValue;
+    public int getValue() {
+        return value;
     }
 }

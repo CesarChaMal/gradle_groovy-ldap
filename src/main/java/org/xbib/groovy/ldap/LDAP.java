@@ -16,7 +16,6 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
-
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -116,7 +115,7 @@ public class LDAP {
      * @return true if exists
      * @throws NamingException if DN can not be resolved
      */
-    public boolean exists(final String dn) throws NamingException {
+    public Boolean exists(final String dn) throws NamingException {
         WithContext<Boolean> action = ctx -> {
             SearchControls searchControls = new SearchControls();
             searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -196,7 +195,7 @@ public class LDAP {
     public void eachEntry(Search search, Closure closure) throws NamingException {
         WithContext<Object> action = ctx -> {
             SearchControls ctls = new SearchControls();
-            ctls.setSearchScope(search.getScope().getJndiValue());
+            ctls.setSearchScope(search.getScope().getValue());
             ctls.setReturningAttributes(search.getAttrs());
             ctls.setReturningObjFlag(true);
             NamingEnumeration<SearchResult> results = ctx.search(search.getBase(), search.getFilter(), search
@@ -228,7 +227,7 @@ public class LDAP {
         List<ModificationItem> mods = new ArrayList<>();
         for (String key : attributes.keySet()) {
             Attribute attr = createAttribute(key, attributes.get(key));
-            ModificationItem item = new ModificationItem(modType.getJndiValue(), attr);
+            ModificationItem item = new ModificationItem(modType.getValue(), attr);
             mods.add(item);
         }
         ModificationItem[] modItems = mods.toArray(new ModificationItem[mods.size()]);
@@ -259,7 +258,7 @@ public class LDAP {
                 Map<String, Object> attributes = (Map<String, Object>) pair.get(1);
                 for (String key : attributes.keySet()) {
                     Attribute attr = createAttribute(key, attributes.get(key));
-                    ModificationItem item = new ModificationItem(modType.getJndiValue(), attr);
+                    ModificationItem item = new ModificationItem(modType.getValue(), attr);
                     mods.add(item);
                 }
             }
@@ -272,20 +271,20 @@ public class LDAP {
         performWithContext(action);
     }
 
-    public List<Map<String,Object>> search(String filter) throws NamingException {
+    public List<Map<String, Object>> search(String filter) throws NamingException {
         return search(new Search("", SearchScope.SUB, filter));
     }
 
-    public List<Map<String,Object>> search(String base, SearchScope scope, String filter) throws NamingException {
+    public List<Map<String, Object>> search(String base, SearchScope scope, String filter) throws NamingException {
         return search(new Search(base, scope, filter));
     }
 
-    public List<Map<String,Object>> search(Map<String, Object> searchParams) throws NamingException {
+    public List<Map<String, Object>> search(Map<String, Object> searchParams) throws NamingException {
         return search(new Search(searchParams));
     }
 
-    public List<Map<String,Object>> search(Search search) throws NamingException {
-        List<Map<String,Object>> result = new ArrayList<>();
+    public List<Map<String, Object>> search(Search search) throws NamingException {
+        List<Map<String, Object>> result = new ArrayList<>();
         WithContext<Object> action = ctx -> {
             NamingEnumeration<SearchResult> results =
                     ctx.search(search.getBase(), search.getFilter(), search.getFilterArgs(), search.getSearchControls());
@@ -294,7 +293,7 @@ public class LDAP {
                 String dn = sr.getNameInNamespace();
                 Attributes attrs = sr.getAttributes();
                 NamingEnumeration<? extends Attribute> en = attrs.getAll();
-                Map<String,Object> map = new LinkedHashMap<>();
+                Map<String, Object> map = new LinkedHashMap<>();
                 map.put("dn", dn);
                 while (en.hasMore()) {
                     Attribute attr = en.next();
@@ -317,6 +316,21 @@ public class LDAP {
         return result;
     }
 
+    public void bind(String bindUser, String bindPassword) throws NamingException {
+        LdapContext ctx = null;
+        try {
+            ctx = new InitialLdapContext(createEnvironment(url, bindUser, bindPassword), null);
+        } finally {
+            try {
+                if (ctx != null) {
+                    ctx.close();
+                }
+            } catch (NamingException e) {
+                logger.log(Level.FINEST, e.getMessage(), e);
+            }
+        }
+    }
+
     /**
      * Open an LDAP context and perform a given task within this context.
      *
@@ -328,8 +342,12 @@ public class LDAP {
     private <T> T performWithContext(WithContext<T> action) throws NamingException {
         LdapContext ctx = null;
         try {
-            ctx = new InitialLdapContext(createEnvironment(url, bindUser, bindPassword), null);
-            return action.perform(ctx);
+            if (url != null) {
+                ctx = new InitialLdapContext(createEnvironment(url, bindUser, bindPassword), null);
+                return action.perform(ctx);
+            } else {
+                return null;
+            }
         } finally {
             try {
                 if (ctx != null) {
@@ -364,4 +382,46 @@ public class LDAP {
         }
         return attr;
     }
+
+    public static String escapeValue(String filter) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < filter.length(); i++) {
+            switch (filter.charAt(i)) {
+                case '\\':
+                    sb.append("\\5c");
+                    break;
+                case '!':
+                    sb.append("\\21");
+                    break;
+                case '&':
+                    sb.append("\\26");
+                    break;
+                case '*':
+                    sb.append("\\2a");
+                    break;
+                case ':':
+                    sb.append("\\3a");
+                    break;
+                case '(':
+                    sb.append("\\28");
+                    break;
+                case ')':
+                    sb.append("\\29");
+                    break;
+                case '|':
+                    sb.append("\\7c");
+                    break;
+                case '~':
+                    sb.append("\\7e");
+                    break;
+                case '\u0000':
+                    sb.append("\\00");
+                    break;
+                default:
+                    sb.append(filter.charAt(i));
+            }
+        }
+        return sb.toString();
+    }
+
 }

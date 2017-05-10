@@ -6,8 +6,8 @@ task xbibUpload(type: Upload) {
         if (project.hasProperty('xbibUsername')) {
             mavenDeployer {
                 configuration = configurations.wagon
-                repository(url: uri('scpexe://xbib.org/repository')) {
-                        authentication(userName: xbibUsername, privateKey: xbibPrivateKey)
+                repository(url: uri('sftp://xbib.org/repository')) {
+                    authentication(userName: xbibUsername, privateKey: xbibPrivateKey)
                 }
             }
         }
@@ -22,10 +22,10 @@ task sonatypeUpload(type: Upload) {
             mavenDeployer {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
                 repository(url: uri(ossrhReleaseUrl)) {
-                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
                 }
                 snapshotRepository(url: uri(ossrhSnapshotUrl)) {
-                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
                 }
                 pom.project {
                     name projectName
@@ -60,4 +60,8 @@ task sonatypeUpload(type: Upload) {
             }
         }
     }
+}
+
+nexusStaging {
+    packageGroup = "org.xbib"
 }
