@@ -59,6 +59,10 @@ task groovydocJar(type: Jar, dependsOn: 'groovydoc') {
     classifier = 'javadoc' // for sonatype validation
 }
 
+artifacts {
+    archives sourcesJar, groovydocJar
+}
+
 if (project.hasProperty('signing.keyId')) {
     signing {
         sign configurations.archives
