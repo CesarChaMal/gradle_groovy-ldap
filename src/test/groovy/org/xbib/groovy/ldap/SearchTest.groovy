@@ -1,6 +1,6 @@
 package org.xbib.groovy.ldap
 
-ldap = LDAP.newInstance('ldap://zanzibar:10389/')
+ldap = LDAP.newInstance('ldap://localhost:10389/')
 
 results = ldap.search('dc=example,dc=com', SearchScope.ONE, '(objectClass=person)')
 println " ${results.size} entries found ".center(40,'-')

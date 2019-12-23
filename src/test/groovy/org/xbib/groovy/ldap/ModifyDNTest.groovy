@@ -1,6 +1,6 @@
 package org.xbib.groovy.ldap
 
-ldap = LDAP.newInstance('ldap://zanzibar:10389', 'uid=admin,ou=system' ,'secret')
+ldap = LDAP.newInstance('ldap://localhost:10389', 'uid=admin,ou=system' ,'secret')
 
 superior='dc=example,dc=com'
 dn = 'cn=Myra Ellen Amos,dc=example,dc=com'
